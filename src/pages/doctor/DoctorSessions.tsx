@@ -27,8 +27,10 @@ import {
 } from "@/components/ui/select";
 import { DoctorSession, SESSION_TYPES } from "@/types";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/use-auth";
 
 const DoctorSessions = () => {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -59,10 +61,22 @@ const DoctorSessions = () => {
 
   // Create session mutation
   const createSession = useMutation({
-    mutationFn: async (newSession: Omit<DoctorSession, 'id' | 'doctor_id' | 'created_at' | 'patients_booked' | 'is_available'>) => {
+    mutationFn: async (newSession: {
+      date: string;
+      start_time: string;
+      end_time: string;
+      session_type: string;
+      max_patients: number;
+      location: string | null;
+    }) => {
+      if (!user) throw new Error("User not authenticated");
+      
       const { data, error } = await supabase
         .from('doctor_sessions')
-        .insert([newSession])
+        .insert({
+          doctor_id: user.id,
+          ...newSession
+        })
         .select();
       
       if (error) throw error;
