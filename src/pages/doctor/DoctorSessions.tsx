@@ -48,15 +48,23 @@ const DoctorSessions = () => {
   const { data: sessions, isLoading } = useQuery({
     queryKey: ['doctorSessions'],
     queryFn: async () => {
+      console.log('Fetching doctor sessions for user:', user?.id);
       const { data, error } = await supabase
         .from('doctor_sessions')
         .select('*')
+        .eq('doctor_id', user?.id)
         .order('date', { ascending: true })
         .order('start_time', { ascending: true });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching sessions:', error);
+        throw error;
+      }
+      
+      console.log('Doctor sessions data:', data);
       return data as DoctorSession[];
-    }
+    },
+    enabled: !!user
   });
 
   // Create session mutation
@@ -71,6 +79,8 @@ const DoctorSessions = () => {
     }) => {
       if (!user) throw new Error("User not authenticated");
       
+      console.log('Creating session with data:', { doctor_id: user.id, ...newSession });
+      
       const { data, error } = await supabase
         .from('doctor_sessions')
         .insert({
@@ -79,7 +89,12 @@ const DoctorSessions = () => {
         })
         .select();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating session:', error);
+        throw error;
+      }
+      
+      console.log('Session created successfully:', data);
       return data[0];
     },
     onSuccess: () => {
@@ -88,6 +103,7 @@ const DoctorSessions = () => {
       handleCloseDialog();
     },
     onError: (error) => {
+      console.error('Mutation error:', error);
       toast.error("Failed to create session: " + error.message);
     }
   });
@@ -152,6 +168,8 @@ const DoctorSessions = () => {
       toast.error("Please fill in all required fields");
       return;
     }
+    
+    console.log('Submitting form data:', formData);
     
     // Format the data
     const sessionData = {

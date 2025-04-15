@@ -1,6 +1,6 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
 import { toast } from "sonner";
@@ -27,6 +27,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [userType, setUserType] = useState<UserType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     // Set up auth state listener
@@ -41,8 +42,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             .then(({ data, error }) => {
               if (!error && data) {
                 setUserType('doctor');
+                if (location.pathname === '/login/doctor' || location.pathname === '/signup/doctor') {
+                  navigate('/doctor-dashboard');
+                }
               } else {
                 setUserType('customer');
+                if (location.pathname === '/login/customer' || location.pathname === '/signup/customer') {
+                  navigate('/patient-dashboard');
+                }
               }
             });
         } else {
@@ -62,8 +69,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           .then(({ data, error }) => {
             if (!error && data) {
               setUserType('doctor');
+              if (!['/doctor-dashboard', '/doctor-sessions', '/doctor-appointments'].includes(location.pathname)) {
+                navigate('/doctor-dashboard');
+              }
             } else {
               setUserType('customer');
+              if (!['/patient-dashboard', '/find-doctors', '/patient-appointments'].includes(location.pathname)) {
+                navigate('/patient-dashboard');
+              }
             }
             setIsLoading(false);
           });
@@ -75,7 +88,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [navigate, location.pathname]);
 
   const signUp = async (email: string, password: string, userData: any, type: UserType) => {
     try {
@@ -102,7 +115,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       toast.success("Signup successful! Please check your email to verify your account.");
-      navigate("/");
+      
+      // Navigate to corresponding dashboard based on user type
+      if (type === 'doctor') {
+        navigate("/doctor-dashboard");
+      } else {
+        navigate("/patient-dashboard");
+      }
     } catch (error: any) {
       toast.error(error.message || "An error occurred during signup");
     } finally {
@@ -125,6 +144,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       toast.success("Login successful!");
+
+      // Redirection will be handled by the auth state change listener
     } catch (error: any) {
       toast.error(error.message || "An error occurred during login");
     } finally {

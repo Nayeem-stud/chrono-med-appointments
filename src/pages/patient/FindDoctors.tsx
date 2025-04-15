@@ -47,6 +47,7 @@ const FindDoctors = () => {
   const { data: sessions, isLoading } = useQuery({
     queryKey: ['availableSessions', specialization, searchTerm],
     queryFn: async () => {
+      console.log('Fetching available sessions');
       let query = supabase
         .from('doctor_sessions')
         .select(`
@@ -54,7 +55,7 @@ const FindDoctors = () => {
           doctor:doctor_id(*)
         `)
         .eq('is_available', true)
-        .gt('date', new Date().toISOString().split('T')[0])
+        .gte('date', new Date().toISOString().split('T')[0])
         .order('date', { ascending: true })
         .order('start_time', { ascending: true });
       
@@ -64,14 +65,19 @@ const FindDoctors = () => {
       
       const { data, error } = await query;
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching sessions:', error);
+        throw error;
+      }
+      
+      console.log('Sessions data:', data);
       
       // Filter by doctor name if search term is provided
       let filteredData = data as SessionWithDoctor[];
       if (searchTerm) {
         const lowerSearchTerm = searchTerm.toLowerCase();
         filteredData = filteredData.filter(session => 
-          session.doctor.full_name.toLowerCase().includes(lowerSearchTerm)
+          session.doctor?.full_name.toLowerCase().includes(lowerSearchTerm)
         );
       }
       
@@ -82,12 +88,14 @@ const FindDoctors = () => {
   // Book appointment mutation
   const bookAppointment = useMutation({
     mutationFn: async ({ sessionId, doctorId, symptoms }: { sessionId: string; doctorId: string; symptoms: string }) => {
+      if (!user) throw new Error("You must be logged in to book an appointment");
+      
       const { data, error } = await supabase
         .from('appointments')
         .insert([{
           session_id: sessionId,
           doctor_id: doctorId,
-          patient_id: user?.id,
+          patient_id: user.id,
           symptoms: symptoms || null
         }])
         .select();

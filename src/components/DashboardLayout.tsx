@@ -21,16 +21,25 @@ interface DashboardLayoutProps {
 }
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
-  const { user, signOut, isDoctor, isPatient } = useAuth();
+  const { user, signOut, isDoctor, isPatient, isLoading } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!user) {
-      navigate("/");
+    if (!isLoading && !user) {
+      const redirectUrl = isDoctor ? "/login/doctor" : "/login/customer";
+      navigate(redirectUrl);
     }
-  }, [user, navigate]);
+  }, [user, isLoading, navigate, isDoctor]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <p className="text-gray-600">Loading...</p>
+      </div>
+    );
+  }
 
   if (!user) return null;
 

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Stethoscope, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,12 +11,23 @@ import { useAuth } from "@/hooks/use-auth";
 const Login = () => {
   const { type } = useParams<{ type: string }>();
   const navigate = useNavigate();
-  const { signIn, isLoading } = useAuth();
+  const { signIn, isLoading, user, isDoctor, isPatient } = useAuth();
   
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (user) {
+      if (isDoctor) {
+        navigate("/doctor-dashboard");
+      } else if (isPatient) {
+        navigate("/patient-dashboard");
+      }
+    }
+  }, [user, isDoctor, isPatient, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
