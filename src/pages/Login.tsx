@@ -6,10 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/hooks/use-auth";
 
 const Login = () => {
   const { type } = useParams<{ type: string }>();
   const navigate = useNavigate();
+  const { signIn, isLoading } = useAuth();
+  
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -22,11 +25,9 @@ const Login = () => {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Login submitted for", type, "with data:", formData);
-    // In a real app, you would handle authentication here
-    navigate("/");
+    await signIn(formData.email, formData.password);
   };
 
   const isDoctor = type === "doctor";
@@ -36,8 +37,8 @@ const Login = () => {
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-md">
         <div className="text-center">
           <Link to="/" className="flex items-center justify-center gap-2">
-            <Stethoscope className="h-8 w-8 text-medical-purple" />
-            <span className="text-xl font-bold text-medical-dark">ChronoMed</span>
+            <Stethoscope className="h-8 w-8 text-primary" />
+            <span className="text-xl font-bold text-gray-900">ChronoMed</span>
           </Link>
           <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
             {isDoctor ? "Doctor Login" : "Patient Login"}
@@ -89,7 +90,7 @@ const Login = () => {
                   <div className="flex items-center justify-between">
                     <Label htmlFor="password">Password</Label>
                     <div className="text-sm">
-                      <Link to="/" className="text-medical-blue hover:text-medical-blue/80">
+                      <Link to="/" className="text-primary hover:text-primary/80">
                         Forgot your password?
                       </Link>
                     </div>
@@ -110,13 +111,14 @@ const Login = () => {
               <div>
                 <Button
                   type="submit"
+                  disabled={isLoading}
                   className={`w-full py-6 ${
                     isDoctor
-                      ? "bg-medical-purple hover:bg-medical-purple/90"
-                      : "bg-medical-blue hover:bg-medical-blue/90"
+                      ? "bg-secondary hover:bg-secondary/90"
+                      : "bg-primary hover:bg-primary/90"
                   }`}
                 >
-                  Sign in
+                  {isLoading ? "Signing in..." : "Sign in"}
                 </Button>
               </div>
             </form>
@@ -128,7 +130,7 @@ const Login = () => {
             Don't have an account?{" "}
             <Link
               to={isDoctor ? "/signup/doctor" : "/signup/customer"}
-              className="font-medium text-medical-blue hover:text-medical-blue/80"
+              className="font-medium text-primary hover:text-primary/80"
             >
               Sign up
             </Link>

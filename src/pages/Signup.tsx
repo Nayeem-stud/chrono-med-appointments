@@ -7,17 +7,26 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SPECIALIZATIONS } from "@/types";
+import { useAuth } from "@/hooks/use-auth";
 
 const Signup = () => {
   const { type } = useParams<{ type: string }>();
   const navigate = useNavigate();
+  const { signUp, isLoading } = useAuth();
+  
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
     password: "",
     confirmPassword: "",
-    agreeTerms: false
+    agreeTerms: false,
+    // Doctor specific fields
+    specialization: "General Medicine",
+    qualification: "",
+    experience: "",
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -34,11 +43,36 @@ const Signup = () => {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData({
+      ...formData,
+      [name]: value,
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Signup submitted for", type, "with data:", formData);
-    // In a real app, you would handle registration here
-    navigate("/");
+    
+    if (formData.password !== formData.confirmPassword) {
+      return alert("Passwords do not match");
+    }
+    
+    if (!formData.agreeTerms) {
+      return alert("You must agree to the terms of service");
+    }
+    
+    await signUp(
+      formData.email, 
+      formData.password, 
+      {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        specialization: formData.specialization,
+        qualification: formData.qualification,
+        experience: parseInt(formData.experience) || 0
+      }, 
+      isDoctor ? 'doctor' : 'customer'
+    );
   };
 
   const isDoctor = type === "doctor";
@@ -48,8 +82,8 @@ const Signup = () => {
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-md">
         <div className="text-center">
           <Link to="/" className="flex items-center justify-center gap-2">
-            <Stethoscope className="h-8 w-8 text-medical-purple" />
-            <span className="text-xl font-bold text-medical-dark">ChronoMed</span>
+            <Stethoscope className="h-8 w-8 text-primary" />
+            <span className="text-xl font-bold text-gray-900">ChronoMed</span>
           </Link>
           <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
             {isDoctor ? "Join as a Doctor" : "Create Patient Account"}
@@ -154,10 +188,49 @@ const Signup = () => {
                 </div>
                 
                 {isDoctor && (
-                  <div className="border-t pt-4 mt-4">
-                    <p className="text-sm text-gray-600 mb-4">
-                      As a healthcare provider, you'll need to complete your profile with your credentials, specialization, and practice details after registration.
-                    </p>
+                  <div className="border-t pt-4 mt-4 space-y-4">
+                    <div>
+                      <Label htmlFor="specialization">Specialization</Label>
+                      <Select 
+                        value={formData.specialization}
+                        onValueChange={(value) => handleSelectChange('specialization', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select specialization" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {SPECIALIZATIONS.map((spec) => (
+                            <SelectItem key={spec} value={spec}>{spec}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="qualification">Qualification</Label>
+                      <Input
+                        id="qualification"
+                        name="qualification"
+                        type="text"
+                        required={isDoctor}
+                        value={formData.qualification}
+                        onChange={handleChange}
+                        className="mt-1"
+                        placeholder="MD, MBBS, etc."
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="experience">Years of Experience</Label>
+                      <Input
+                        id="experience"
+                        name="experience"
+                        type="number"
+                        required={isDoctor}
+                        value={formData.experience}
+                        onChange={handleChange}
+                        className="mt-1"
+                        min="0"
+                      />
+                    </div>
                   </div>
                 )}
                 
@@ -172,11 +245,11 @@ const Signup = () => {
                     className="text-sm text-gray-500 cursor-pointer"
                   >
                     I agree to the{" "}
-                    <Link to="/" className="text-medical-blue hover:underline">
+                    <Link to="/" className="text-primary hover:underline">
                       Terms of Service
                     </Link>{" "}
                     and{" "}
-                    <Link to="/" className="text-medical-blue hover:underline">
+                    <Link to="/" className="text-primary hover:underline">
                       Privacy Policy
                     </Link>
                   </label>
@@ -186,16 +259,16 @@ const Signup = () => {
               <div>
                 <Button
                   type="submit"
-                  disabled={!formData.agreeTerms}
+                  disabled={!formData.agreeTerms || isLoading}
                   className={`w-full py-6 ${
                     !formData.agreeTerms ? "opacity-60 cursor-not-allowed" : ""
                   } ${
                     isDoctor
-                      ? "bg-medical-purple hover:bg-medical-purple/90"
-                      : "bg-medical-blue hover:bg-medical-blue/90"
+                      ? "bg-secondary hover:bg-secondary/90"
+                      : "bg-primary hover:bg-primary/90"
                   }`}
                 >
-                  Create Account
+                  {isLoading ? "Creating Account..." : "Create Account"}
                 </Button>
               </div>
             </form>
@@ -207,7 +280,7 @@ const Signup = () => {
             Already have an account?{" "}
             <Link
               to={isDoctor ? "/login/doctor" : "/login/customer"}
-              className="font-medium text-medical-blue hover:text-medical-blue/80"
+              className="font-medium text-primary hover:text-primary/80"
             >
               Sign in
             </Link>
