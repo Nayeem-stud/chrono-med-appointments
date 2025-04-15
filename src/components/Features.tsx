@@ -1,5 +1,6 @@
 
 import { Clock, Calendar, Shield, Star } from "lucide-react";
+import { Card, CardContent } from "./ui/card";
 
 const features = [
   {
@@ -37,13 +38,18 @@ const Features = () => {
           </p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
           {features.map((feature, index) => (
-            <div key={index} className="bg-medical-light p-6 rounded-xl hover:shadow-md transition-shadow duration-300">
-              <div className="mb-4">{feature.icon}</div>
-              <h3 className="text-xl font-semibold mb-2 text-medical-dark">{feature.title}</h3>
-              <p className="text-gray-600">{feature.description}</p>
-            </div>
+            <Card 
+              key={index} 
+              className="bg-medical-light border-none rounded-xl hover:shadow-md transition-all duration-300 transform hover:-translate-y-1 h-full"
+            >
+              <CardContent className="p-6">
+                <div className="mb-4 flex justify-center sm:justify-start">{feature.icon}</div>
+                <h3 className="text-xl font-semibold mb-3 text-medical-dark">{feature.title}</h3>
+                <p className="text-gray-600">{feature.description}</p>
+              </CardContent>
+            </Card>
           ))}
         </div>
       </div>

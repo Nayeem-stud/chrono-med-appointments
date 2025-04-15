@@ -1,5 +1,7 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { Card, CardContent } from "./ui/card";
+import { Quote } from "lucide-react";
 
 const testimonials = [
   {
@@ -24,7 +26,7 @@ const testimonials = [
 
 const Testimonials = () => {
   return (
-    <section className="py-16 px-6 md:px-10 bg-medical-light">
+    <section className="py-16 px-6 md:px-10 bg-gradient-to-b from-white to-medical-light">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-medical-dark mb-4">
@@ -37,13 +39,19 @@ const Testimonials = () => {
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {testimonials.map((testimonial, index) => (
-            <div key={index} className="bg-white p-6 rounded-xl shadow-sm">
-              <div className="flex flex-col h-full">
+            <Card 
+              key={index} 
+              className="bg-white border-none rounded-xl shadow-sm hover:shadow-md transition-all duration-300 h-full"
+            >
+              <CardContent className="p-6 flex flex-col h-full">
+                <div className="text-medical-purple opacity-40 mb-2">
+                  <Quote size={32} />
+                </div>
                 <blockquote className="flex-grow">
-                  <p className="text-gray-600 italic mb-6">"{testimonial.quote}"</p>
+                  <p className="text-gray-600 mb-6">{testimonial.quote}</p>
                 </blockquote>
-                <div className="flex items-center mt-4">
-                  <Avatar className="h-10 w-10 mr-3">
+                <div className="flex items-center mt-4 pt-4 border-t border-gray-100">
+                  <Avatar className="h-10 w-10 mr-3 border-2 border-medical-light">
                     <AvatarImage src="" alt={testimonial.name} />
                     <AvatarFallback className="bg-medical-blue text-white">
                       {testimonial.avatar}
@@ -54,8 +62,8 @@ const Testimonials = () => {
                     <p className="text-sm text-gray-500">{testimonial.role}</p>
                   </div>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       </div>
