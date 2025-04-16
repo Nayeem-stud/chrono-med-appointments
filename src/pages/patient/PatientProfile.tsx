@@ -35,8 +35,7 @@ const PatientProfile = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [profileData, setProfileData] = useState<PatientProfileType | null>(null);
 
-  // Use a simpler query pattern to avoid issues with authentication and redirection
-  const { data: profile } = useQuery({
+  const { data: profile, isError } = useQuery({
     queryKey: ['patientProfile', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
@@ -56,16 +55,17 @@ const PatientProfile = () => {
       return data as PatientProfileType;
     },
     enabled: !!user?.id,
-    meta: {
-      onSuccess: (data: PatientProfileType | null) => {
-        setProfileData(data);
-        setIsLoading(false);
-      },
-      onError: () => {
-        setIsLoading(false);
-      }
-    }
   });
+
+  // Update local state when query completes
+  useEffect(() => {
+    if (profile) {
+      setProfileData(profile);
+      setIsLoading(false);
+    } else if (isError) {
+      setIsLoading(false);
+    }
+  }, [profile, isError]);
 
   const form = useForm<ProfileFormValues>({
     defaultValues: {
@@ -134,7 +134,7 @@ const PatientProfile = () => {
   };
 
   // Don't redirect, just show a loading state if we're waiting for data
-  if (isLoading) {
+  if (isLoading && !profileData && !profile) {
     return (
       <DashboardLayout>
         <div className="flex justify-center items-center h-64">

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { 
@@ -29,10 +28,10 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   useEffect(() => {
     // Only redirect if we're sure the user isn't logged in (not during loading)
     if (!isLoading && !user) {
-      // Allow redirecting from doctor & patient specific pages, but avoid redirecting
-      // from profile pages which might still be loading profile data
+      // Avoid redirecting from profile pages which might still be loading profile data
       const isProfilePage = location.pathname.includes('profile');
       
+      // Only redirect from non-profile pages
       if (!isProfilePage) {
         console.log("No user detected, redirecting from:", location.pathname);
         const redirectUrl = isDoctor ? "/login/doctor" : "/login/customer";
