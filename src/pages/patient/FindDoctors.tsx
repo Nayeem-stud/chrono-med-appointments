@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
@@ -176,13 +175,13 @@ const FindDoctors = () => {
           <Filter className="h-4 w-4 text-gray-500 hidden md:block" />
           <Select
             value={specialization || ""}
-            onValueChange={(value) => setSpecialization(value || null)}
+            onValueChange={(value) => setSpecialization(value === "all" ? null : value)}
           >
             <SelectTrigger>
               <SelectValue placeholder="All Specializations" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Specializations</SelectItem>
+              <SelectItem value="all">All Specializations</SelectItem>
               {SPECIALIZATIONS.map(spec => (
                 <SelectItem key={spec} value={spec}>{spec}</SelectItem>
               ))}
