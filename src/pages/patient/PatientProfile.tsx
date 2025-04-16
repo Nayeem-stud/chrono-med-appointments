@@ -32,20 +32,37 @@ const PatientProfile = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [profileData, setProfileData] = useState<PatientProfileType | null>(null);
 
-  const { data: profile, isLoading } = useQuery({
-    queryKey: ['patientProfile'],
+  // Use a simpler query pattern to avoid issues with authentication and redirection
+  const { data: profile } = useQuery({
+    queryKey: ['patientProfile', user?.id],
     queryFn: async () => {
+      if (!user?.id) return null;
+      
       const { data, error } = await supabase
         .from('patient_profiles')
         .select('*')
-        .eq('id', user?.id)
+        .eq('id', user.id)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching profile:", error);
+        return null;
+      }
+      
+      setIsLoading(false);
       return data as PatientProfileType;
     },
-    enabled: !!user?.id
+    enabled: !!user?.id,
+    onSuccess: (data) => {
+      setProfileData(data);
+      setIsLoading(false);
+    },
+    onError: () => {
+      setIsLoading(false);
+    }
   });
 
   const form = useForm<ProfileFormValues>({
@@ -59,19 +76,27 @@ const PatientProfile = () => {
   });
 
   useEffect(() => {
-    if (profile) {
+    // Only reset the form when we have profile data
+    if (profile || profileData) {
+      const data = profile || profileData;
+      if (!data) return;
+      
       form.reset({
-        full_name: profile.full_name || '',
-        gender: profile.gender || '',
-        date_of_birth: profile.date_of_birth ? new Date(profile.date_of_birth) : null,
-        contact_number: profile.contact_number || '',
-        medical_history: profile.medical_history || '',
+        full_name: data.full_name || '',
+        gender: data.gender || '',
+        date_of_birth: data.date_of_birth ? new Date(data.date_of_birth) : null,
+        contact_number: data.contact_number || '',
+        medical_history: data.medical_history || '',
       });
     }
-  }, [profile, form.reset, form]);
+  }, [profile, profileData, form.reset, form]);
 
   const updateProfile = useMutation({
     mutationFn: async (values: ProfileFormValues) => {
+      if (!user?.id) {
+        throw new Error("User ID is required");
+      }
+      
       const { data, error } = await supabase
         .from('patient_profiles')
         .update({
@@ -81,19 +106,20 @@ const PatientProfile = () => {
           contact_number: values.contact_number,
           medical_history: values.medical_history,
         })
-        .eq('id', user?.id)
+        .eq('id', user.id)
         .select();
       
       if (error) throw error;
       return data[0] as PatientProfileType;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      setProfileData(data);
       queryClient.invalidateQueries({ queryKey: ['patientProfile'] });
       toast.success("Profile updated successfully");
       setIsEditing(false);
     },
     onError: (error) => {
-      toast.error("Failed to update profile: " + error.message);
+      toast.error("Failed to update profile: " + (error as Error).message);
     }
   });
 
@@ -105,6 +131,7 @@ const PatientProfile = () => {
     updateProfile.mutate(values);
   };
 
+  // Don't redirect, just show a loading state if we're waiting for data
   if (isLoading) {
     return (
       <DashboardLayout>
@@ -115,6 +142,7 @@ const PatientProfile = () => {
     );
   }
 
+  // Display view or edit mode as appropriate
   if (!isEditing) {
     return (
       <DashboardLayout>
@@ -132,7 +160,7 @@ const PatientProfile = () => {
                     <UserRound className="h-12 w-12 text-primary" />
                   </div>
                 </div>
-                <CardTitle>{profile?.full_name || 'No Name Provided'}</CardTitle>
+                <CardTitle>{(profile || profileData)?.full_name || 'No Name Provided'}</CardTitle>
                 <CardDescription>{user?.email}</CardDescription>
               </CardHeader>
               <CardContent className="flex justify-center">
@@ -153,33 +181,33 @@ const PatientProfile = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <p className="text-sm font-medium text-gray-500">Full Name</p>
-                    <p className="text-gray-900">{profile?.full_name || 'Not provided'}</p>
+                    <p className="text-gray-900">{(profile || profileData)?.full_name || 'Not provided'}</p>
                   </div>
                   
                   <div className="space-y-1">
                     <p className="text-sm font-medium text-gray-500">Gender</p>
-                    <p className="text-gray-900">{profile?.gender || 'Not provided'}</p>
+                    <p className="text-gray-900">{(profile || profileData)?.gender || 'Not provided'}</p>
                   </div>
                   
                   <div className="space-y-1">
                     <p className="text-sm font-medium text-gray-500">Date of Birth</p>
                     <p className="text-gray-900">
-                      {profile?.date_of_birth ? 
-                        format(new Date(profile.date_of_birth), 'MMMM d, yyyy') : 
+                      {(profile || profileData)?.date_of_birth ? 
+                        format(new Date((profile || profileData)!.date_of_birth), 'MMMM d, yyyy') : 
                         'Not provided'}
                     </p>
                   </div>
                   
                   <div className="space-y-1">
                     <p className="text-sm font-medium text-gray-500">Contact Number</p>
-                    <p className="text-gray-900">{profile?.contact_number || 'Not provided'}</p>
+                    <p className="text-gray-900">{(profile || profileData)?.contact_number || 'Not provided'}</p>
                   </div>
                 </div>
                 
                 <div className="pt-4 border-t">
                   <p className="text-sm font-medium text-gray-500 mb-2">Medical History</p>
                   <p className="text-gray-900 whitespace-pre-line">
-                    {profile?.medical_history || 'No medical history provided.'}
+                    {(profile || profileData)?.medical_history || 'No medical history provided.'}
                   </p>
                 </div>
               </CardContent>

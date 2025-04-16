@@ -27,12 +27,15 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Only redirect if we're sure the user isn't logged in (not during loading)
     if (!isLoading && !user) {
+      console.log("No user detected, redirecting from:", location.pathname);
       const redirectUrl = isDoctor ? "/login/doctor" : "/login/customer";
       navigate(redirectUrl);
     }
-  }, [user, isLoading, navigate, isDoctor]);
+  }, [user, isLoading, navigate, isDoctor, location.pathname]);
 
+  // Show a loading state instead of returning null, which might cause flash redirect
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -41,7 +44,21 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     );
   }
 
-  if (!user) return null;
+  // Return early with a loading state if we detect a user is logged in
+  // but we're still checking their type
+  if (!isLoading && user && !isDoctor && !isPatient) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <p className="text-gray-600">Loading user data...</p>
+      </div>
+    );
+  }
+
+  // Only show the layout if we're sure the user is logged in
+  if (!user) {
+    // This is a failsafe - ideally the useEffect should redirect before this
+    return null;
+  }
 
   const doctorNavItems = [
     { name: "Dashboard", path: "/doctor-dashboard", icon: <Home className="h-5 w-5" /> },
