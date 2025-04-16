@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -17,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { PatientProfile as PatientProfileType } from "@/types";
 
 interface ProfileFormValues {
   full_name: string;
@@ -41,8 +43,9 @@ const PatientProfile = () => {
         .single();
       
       if (error) throw error;
-      return data;
-    }
+      return data as PatientProfileType;
+    },
+    enabled: !!user?.id
   });
 
   const form = useForm<ProfileFormValues>({
@@ -65,7 +68,7 @@ const PatientProfile = () => {
         medical_history: profile.medical_history || '',
       });
     }
-  }, [profile, form]);
+  }, [profile, form.reset, form]);
 
   const updateProfile = useMutation({
     mutationFn: async (values: ProfileFormValues) => {
@@ -82,7 +85,7 @@ const PatientProfile = () => {
         .select();
       
       if (error) throw error;
-      return data[0];
+      return data[0] as PatientProfileType;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['patientProfile'] });
@@ -95,6 +98,10 @@ const PatientProfile = () => {
   });
 
   const onSubmit = (values: ProfileFormValues) => {
+    if (!user?.id) {
+      toast.error("You must be logged in to update your profile");
+      return;
+    }
     updateProfile.mutate(values);
   };
 
@@ -125,7 +132,7 @@ const PatientProfile = () => {
                     <UserRound className="h-12 w-12 text-primary" />
                   </div>
                 </div>
-                <CardTitle>{profile?.full_name}</CardTitle>
+                <CardTitle>{profile?.full_name || 'No Name Provided'}</CardTitle>
                 <CardDescription>{user?.email}</CardDescription>
               </CardHeader>
               <CardContent className="flex justify-center">
@@ -221,7 +228,7 @@ const PatientProfile = () => {
                       <FormLabel>Gender</FormLabel>
                       <Select 
                         onValueChange={field.onChange} 
-                        defaultValue={field.value}
+                        value={field.value || ""}
                       >
                         <FormControl>
                           <SelectTrigger>
