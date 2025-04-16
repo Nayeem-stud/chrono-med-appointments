@@ -30,9 +30,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
 
   useEffect(() => {
+    console.log("Auth state changed - setting up listeners");
+    
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log("Auth event:", event, "Session:", session ? "exists" : "null");
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -40,6 +43,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           // Check if doctor
           supabase.rpc('is_doctor')
             .then(({ data, error }) => {
+              console.log("is_doctor check:", data, error);
               if (!error && data) {
                 setUserType('doctor');
                 if (location.pathname === '/login/doctor' || location.pathname === '/signup/doctor') {
@@ -60,6 +64,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log("Initial session check:", session ? "exists" : "null");
       setSession(session);
       setUser(session?.user ?? null);
       
@@ -67,13 +72,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Check if doctor
         supabase.rpc('is_doctor')
           .then(({ data, error }) => {
+            console.log("Initial is_doctor check:", data, error);
             if (!error && data) {
               setUserType('doctor');
+              // Redirect doctor to their dashboard if not already there
               if (!['/doctor-dashboard', '/doctor-sessions', '/doctor-appointments'].includes(location.pathname)) {
                 navigate('/doctor-dashboard');
               }
             } else {
               setUserType('customer');
+              // Redirect patient to their dashboard if not already there
               if (!['/patient-dashboard', '/find-doctors', '/patient-appointments'].includes(location.pathname)) {
                 navigate('/patient-dashboard');
               }
@@ -132,6 +140,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signIn = async (email: string, password: string) => {
     try {
       setIsLoading(true);
+      console.log("Signing in with:", email);
       
       const { error } = await supabase.auth.signInWithPassword({
         email,
@@ -139,14 +148,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (error) {
+        console.error("Sign in error:", error);
         toast.error(error.message);
         return;
       }
 
+      console.log("Sign in successful");
       toast.success("Login successful!");
 
       // Redirection will be handled by the auth state change listener
     } catch (error: any) {
+      console.error("Sign in exception:", error);
       toast.error(error.message || "An error occurred during login");
     } finally {
       setIsLoading(false);

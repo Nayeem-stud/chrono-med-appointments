@@ -41,7 +41,7 @@ const Login = () => {
     await signIn(formData.email, formData.password);
   };
 
-  const isDoctor = type === "doctor";
+  const userType = type === "doctor" ? "doctor" : "customer";
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -52,16 +52,16 @@ const Login = () => {
             <span className="text-xl font-bold text-gray-900">ChronoMed</span>
           </Link>
           <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            {isDoctor ? "Doctor Login" : "Patient Login"}
+            {userType === "doctor" ? "Doctor Login" : "Patient Login"}
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            {isDoctor
+            {userType === "doctor"
               ? "Access your doctor dashboard"
               : "Access your patient dashboard"}
           </p>
         </div>
 
-        <Tabs defaultValue={isDoctor ? "doctor" : "customer"} className="w-full">
+        <Tabs defaultValue={userType} className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-8">
             <TabsTrigger 
               value="customer" 
@@ -81,7 +81,7 @@ const Login = () => {
             </TabsTrigger>
           </TabsList>
           
-          <TabsContent value={isDoctor ? "doctor" : "customer"}>
+          <TabsContent value={userType}>
             <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
               <div className="space-y-4">
                 <div>
@@ -124,7 +124,7 @@ const Login = () => {
                   type="submit"
                   disabled={isLoading}
                   className={`w-full py-6 ${
-                    isDoctor
+                    userType === "doctor"
                       ? "bg-secondary hover:bg-secondary/90"
                       : "bg-primary hover:bg-primary/90"
                   }`}
@@ -140,7 +140,7 @@ const Login = () => {
           <p className="text-sm text-gray-600">
             Don't have an account?{" "}
             <Link
-              to={isDoctor ? "/signup/doctor" : "/signup/customer"}
+              to={userType === "doctor" ? "/signup/doctor" : "/signup/customer"}
               className="font-medium text-primary hover:text-primary/80"
             >
               Sign up
