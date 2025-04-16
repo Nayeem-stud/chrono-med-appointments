@@ -56,12 +56,14 @@ const PatientProfile = () => {
       return data as PatientProfileType;
     },
     enabled: !!user?.id,
-    onSuccess: (data) => {
-      setProfileData(data);
-      setIsLoading(false);
-    },
-    onError: () => {
-      setIsLoading(false);
+    meta: {
+      onSuccess: (data: PatientProfileType | null) => {
+        setProfileData(data);
+        setIsLoading(false);
+      },
+      onError: () => {
+        setIsLoading(false);
+      }
     }
   });
 
@@ -89,7 +91,7 @@ const PatientProfile = () => {
         medical_history: data.medical_history || '',
       });
     }
-  }, [profile, profileData, form.reset, form]);
+  }, [profile, profileData, form]);
 
   const updateProfile = useMutation({
     mutationFn: async (values: ProfileFormValues) => {

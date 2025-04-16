@@ -29,9 +29,15 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   useEffect(() => {
     // Only redirect if we're sure the user isn't logged in (not during loading)
     if (!isLoading && !user) {
-      console.log("No user detected, redirecting from:", location.pathname);
-      const redirectUrl = isDoctor ? "/login/doctor" : "/login/customer";
-      navigate(redirectUrl);
+      // Allow redirecting from doctor & patient specific pages, but avoid redirecting
+      // from profile pages which might still be loading profile data
+      const isProfilePage = location.pathname.includes('profile');
+      
+      if (!isProfilePage) {
+        console.log("No user detected, redirecting from:", location.pathname);
+        const redirectUrl = isDoctor ? "/login/doctor" : "/login/customer";
+        navigate(redirectUrl);
+      }
     }
   }, [user, isLoading, navigate, isDoctor, location.pathname]);
 
@@ -44,20 +50,21 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     );
   }
 
-  // Return early with a loading state if we detect a user is logged in
-  // but we're still checking their type
-  if (!isLoading && user && !isDoctor && !isPatient) {
+  // Return layout even if user isn't fully loaded - this prevents
+  // redirects on profile pages where we're still fetching data
+  if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-gray-600">Loading user data...</p>
+        <p className="text-gray-600">Please log in to access this page</p>
+        <Button 
+          variant="link" 
+          onClick={() => navigate("/login/customer")}
+          className="ml-2"
+        >
+          Go to Login
+        </Button>
       </div>
     );
-  }
-
-  // Only show the layout if we're sure the user is logged in
-  if (!user) {
-    // This is a failsafe - ideally the useEffect should redirect before this
-    return null;
   }
 
   const doctorNavItems = [
