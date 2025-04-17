@@ -8,7 +8,7 @@ const Hero = () => {
 
   return (
     <div className="bg-gradient-to-b from-medical-light to-white py-16 px-6 md:py-24 md:px-10">
-      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
         <div className="space-y-6 animate-fade-in">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-medical-dark leading-tight">
             Your Health, <span className="text-medical-purple">On Your Schedule</span>
@@ -29,17 +29,17 @@ const Hero = () => {
             </Link>
           </div>
         </div>
-        <div className="hidden md:block">
+        <div className="hidden md:flex justify-center items-center pl-8">
           <img
-            src="https://images.unsplash.com/photo-1651008376811-b90baee60c1f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80"
+            src="/lovable-uploads/ebe26e01-c3e3-4c30-af49-6409282d0429.png"
             alt="Doctor with patient"
-            className="rounded-2xl shadow-xl w-full object-cover transform hover:scale-[1.02] transition-transform duration-300 h-[500px]"
+            className="rounded-2xl shadow-xl w-full max-w-[500px] object-cover transform hover:scale-[1.02] transition-transform duration-300"
           />
         </div>
         {isMobile && (
           <div className="mt-8">
             <img
-              src="https://images.unsplash.com/photo-1651008376811-b90baee60c1f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+              src="/lovable-uploads/ebe26e01-c3e3-4c30-af49-6409282d0429.png"
               alt="Doctor with patient"
               className="rounded-xl shadow-lg w-full object-cover h-64"
             />
