@@ -31,16 +31,16 @@ const Hero = () => {
         </div>
         <div className="hidden md:flex justify-center items-center pl-8">
           <img
-            src="/lovable-uploads/ebe26e01-c3e3-4c30-af49-6409282d0429.png"
-            alt="Doctor with patient"
+            src="https://images.unsplash.com/photo-1612349317150-e413f6a5b776?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80"
+            alt="Doctor consulting with patient"
             className="rounded-2xl shadow-xl w-full max-w-[500px] object-cover transform hover:scale-[1.02] transition-transform duration-300"
           />
         </div>
         {isMobile && (
           <div className="mt-8">
             <img
-              src="/lovable-uploads/ebe26e01-c3e3-4c30-af49-6409282d0429.png"
-              alt="Doctor with patient"
+              src="https://images.unsplash.com/photo-1612349317150-e413f6a5b776?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"
+              alt="Doctor consulting with patient"
               className="rounded-xl shadow-lg w-full object-cover h-64"
             />
           </div>
@@ -51,3 +51,4 @@ const Hero = () => {
 };
 
 export default Hero;
+
