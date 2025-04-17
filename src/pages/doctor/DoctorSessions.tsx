@@ -48,11 +48,13 @@ const DoctorSessions = () => {
   const { data: sessions, isLoading } = useQuery({
     queryKey: ['doctorSessions'],
     queryFn: async () => {
-      console.log('Fetching doctor sessions for user:', user?.id);
+      if (!user?.id) return [];
+      
+      console.log('Fetching doctor sessions for user:', user.id);
       const { data, error } = await supabase
         .from('doctor_sessions')
         .select('*')
-        .eq('doctor_id', user?.id)
+        .eq('doctor_id', user.id)
         .order('date', { ascending: true })
         .order('start_time', { ascending: true });
       
@@ -64,7 +66,7 @@ const DoctorSessions = () => {
       console.log('Doctor sessions data:', data);
       return data as DoctorSession[];
     },
-    enabled: !!user
+    enabled: !!user?.id
   });
 
   // Create session mutation
@@ -77,7 +79,7 @@ const DoctorSessions = () => {
       max_patients: number;
       location: string | null;
     }) => {
-      if (!user) throw new Error("User not authenticated");
+      if (!user?.id) throw new Error("User not authenticated");
       
       console.log('Creating session with data:', { doctor_id: user.id, ...newSession });
       
@@ -85,7 +87,9 @@ const DoctorSessions = () => {
         .from('doctor_sessions')
         .insert({
           doctor_id: user.id,
-          ...newSession
+          ...newSession,
+          is_available: true,
+          patients_booked: 0
         })
         .select();
       

@@ -1,45 +1,58 @@
-
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { CalendarIcon, User, Mail, Phone, Cake, UserRound } from "lucide-react";
-import { format } from "date-fns";
-import { toast } from "sonner";
-
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import DashboardLayout from "@/components/DashboardLayout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { 
+  Form, 
+  FormControl, 
+  FormField, 
+  FormItem, 
+  FormLabel, 
+  FormMessage 
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calendar, User } from "lucide-react";
 import { PatientProfile as PatientProfileType } from "@/types";
+import { toast } from "sonner";
 
-interface ProfileFormValues {
-  full_name: string;
-  gender: string;
-  date_of_birth: Date | null;
-  contact_number: string;
-  medical_history: string;
-}
+// Form schema
+const profileSchema = z.object({
+  fullName: z.string().min(2, { message: "Name must be at least 2 characters" }),
+  dateOfBirth: z.string().optional(),
+  gender: z.enum(["male", "female", "other", ""]).optional(),
+  contactNumber: z.string().optional(),
+  medicalHistory: z.string().optional(),
+});
+
+type ProfileFormValues = z.infer<typeof profileSchema>;
 
 const PatientProfile = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [profileData, setProfileData] = useState<PatientProfileType | null>(null);
 
-  const { data: profile, isError } = useQuery({
+  // Fetch patient profile
+  const { data: profile } = useQuery({
     queryKey: ['patientProfile', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
       
+      console.log('Fetching patient profile for user:', user.id);
       const { data, error } = await supabase
         .from('patient_profiles')
         .select('*')
@@ -47,11 +60,15 @@ const PatientProfile = () => {
         .single();
       
       if (error) {
-        console.error("Error fetching profile:", error);
-        return null;
+        if (error.code === 'PGRST116') {
+          console.log('No profile found for user:', user.id);
+          return null;
+        }
+        console.error('Error fetching profile:', error);
+        throw error;
       }
       
-      setIsLoading(false);
+      console.log('Patient profile data:', data);
       return data as PatientProfileType;
     },
     enabled: !!user?.id,
@@ -62,159 +79,75 @@ const PatientProfile = () => {
     if (profile) {
       setProfileData(profile);
       setIsLoading(false);
-    } else if (isError) {
+    } else {
       setIsLoading(false);
     }
-  }, [profile, isError]);
+  }, [profile]);
 
   const form = useForm<ProfileFormValues>({
     defaultValues: {
-      full_name: '',
-      gender: '',
-      date_of_birth: null,
-      contact_number: '',
-      medical_history: '',
-    }
+      fullName: "",
+      dateOfBirth: "",
+      gender: "",
+      contactNumber: "",
+      medicalHistory: "",
+    },
+    resolver: zodResolver(profileSchema),
   });
 
+  // Update form values when profile data is loaded
   useEffect(() => {
-    // Only reset the form when we have profile data
-    if (profile || profileData) {
-      const data = profile || profileData;
-      if (!data) return;
-      
+    if (profileData) {
       form.reset({
-        full_name: data.full_name || '',
-        gender: data.gender || '',
-        date_of_birth: data.date_of_birth ? new Date(data.date_of_birth) : null,
-        contact_number: data.contact_number || '',
-        medical_history: data.medical_history || '',
+        fullName: profileData.full_name,
+        dateOfBirth: profileData.date_of_birth || "",
+        gender: (profileData.gender as any) || "",
+        contactNumber: profileData.contact_number || "",
+        medicalHistory: profileData.medical_history || "",
       });
     }
-  }, [profile, profileData, form]);
+  }, [profileData, form]);
 
+  // Update profile mutation
   const updateProfile = useMutation({
     mutationFn: async (values: ProfileFormValues) => {
-      if (!user?.id) {
-        throw new Error("User ID is required");
-      }
+      if (!user) throw new Error("User not authenticated");
       
       const { data, error } = await supabase
         .from('patient_profiles')
         .update({
-          full_name: values.full_name,
-          gender: values.gender,
-          date_of_birth: values.date_of_birth ? format(values.date_of_birth, 'yyyy-MM-dd') : null,
-          contact_number: values.contact_number,
-          medical_history: values.medical_history,
+          full_name: values.fullName,
+          date_of_birth: values.dateOfBirth || null,
+          gender: values.gender || null,
+          contact_number: values.contactNumber || null,
+          medical_history: values.medicalHistory || null,
         })
         .eq('id', user.id)
         .select();
       
       if (error) throw error;
-      return data[0] as PatientProfileType;
+      return data[0];
     },
     onSuccess: (data) => {
-      setProfileData(data);
       queryClient.invalidateQueries({ queryKey: ['patientProfile'] });
+      setProfileData(data);
       toast.success("Profile updated successfully");
-      setIsEditing(false);
     },
     onError: (error) => {
-      toast.error("Failed to update profile: " + (error as Error).message);
+      toast.error("Failed to update profile: " + error.message);
     }
   });
 
   const onSubmit = (values: ProfileFormValues) => {
-    if (!user?.id) {
-      toast.error("You must be logged in to update your profile");
-      return;
-    }
     updateProfile.mutate(values);
   };
 
   // Don't redirect, just show a loading state if we're waiting for data
-  if (isLoading && !profileData && !profile) {
+  if (isLoading && !profileData) {
     return (
       <DashboardLayout>
         <div className="flex justify-center items-center h-64">
-          <p className="text-gray-500">Loading profile...</p>
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-  // Display view or edit mode as appropriate
-  if (!isEditing) {
-    return (
-      <DashboardLayout>
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
-          <p className="text-gray-600">View and manage your personal information</p>
-        </div>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1">
-            <Card>
-              <CardHeader className="text-center">
-                <div className="flex justify-center mb-4">
-                  <div className="bg-primary/10 w-24 h-24 rounded-full flex items-center justify-center">
-                    <UserRound className="h-12 w-12 text-primary" />
-                  </div>
-                </div>
-                <CardTitle>{(profile || profileData)?.full_name || 'No Name Provided'}</CardTitle>
-                <CardDescription>{user?.email}</CardDescription>
-              </CardHeader>
-              <CardContent className="flex justify-center">
-                <Button onClick={() => setIsEditing(true)}>
-                  Edit Profile
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-          
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Personal Information</CardTitle>
-                <CardDescription>Your personal and medical details</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-gray-500">Full Name</p>
-                    <p className="text-gray-900">{(profile || profileData)?.full_name || 'Not provided'}</p>
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-gray-500">Gender</p>
-                    <p className="text-gray-900">{(profile || profileData)?.gender || 'Not provided'}</p>
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-gray-500">Date of Birth</p>
-                    <p className="text-gray-900">
-                      {(profile || profileData)?.date_of_birth ? 
-                        format(new Date((profile || profileData)!.date_of_birth), 'MMMM d, yyyy') : 
-                        'Not provided'}
-                    </p>
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-gray-500">Contact Number</p>
-                    <p className="text-gray-900">{(profile || profileData)?.contact_number || 'Not provided'}</p>
-                  </div>
-                </div>
-                
-                <div className="pt-4 border-t">
-                  <p className="text-sm font-medium text-gray-500 mb-2">Medical History</p>
-                  <p className="text-gray-900 whitespace-pre-line">
-                    {(profile || profileData)?.medical_history || 'No medical history provided.'}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <p className="text-gray-500">Loading profile data...</p>
         </div>
       </DashboardLayout>
     );
@@ -223,153 +156,106 @@ const PatientProfile = () => {
   return (
     <DashboardLayout>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Edit Profile</h1>
-        <p className="text-gray-600">Update your personal and medical information</p>
+        <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
+        <p className="text-gray-600">Manage your profile information</p>
       </div>
-      
+
       <Card>
         <CardHeader>
-          <CardTitle>Profile Information</CardTitle>
-          <CardDescription>Update your personal details and medical history</CardDescription>
+          <CardTitle>
+            <User className="h-5 w-5 mr-2 inline-block" />
+            Personal Information
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                  control={form.control}
-                  name="full_name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Full Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter your full name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="gender"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Gender</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange} 
-                        value={field.value || ""}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select gender" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="male">Male</SelectItem>
-                          <SelectItem value="female">Female</SelectItem>
-                          <SelectItem value="other">Other</SelectItem>
-                          <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="date_of_birth"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Date of Birth</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={"outline"}
-                              className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value || undefined}
-                            onSelect={field.onChange}
-                            disabled={(date) =>
-                              date > new Date() || date < new Date("1900-01-01")
-                            }
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="contact_number"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Contact Number</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter your contact number" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
-                name="medical_history"
+                name="fullName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Medical History</FormLabel>
+                    <FormLabel>Full Name</FormLabel>
                     <FormControl>
-                      <Textarea 
-                        placeholder="Enter any relevant medical history, allergies, or conditions"
-                        className="min-h-[150px]"
-                        {...field} 
-                      />
+                      <Input placeholder="John Doe" {...field} />
                     </FormControl>
-                    <FormDescription>
-                      This information will be shared with your doctors.
-                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              
-              <div className="flex justify-end space-x-4">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setIsEditing(false)}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={updateProfile.isPending}
-                >
-                  {updateProfile.isPending ? "Saving..." : "Save Changes"}
-                </Button>
-              </div>
+
+              <FormField
+                control={form.control}
+                name="dateOfBirth"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Date of Birth</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="gender"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Gender</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a gender" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="male">Male</SelectItem>
+                        <SelectItem value="female">Female</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="contactNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Contact Number</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., +15551234567" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="medicalHistory"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Medical History</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Enter any relevant medical history..."
+                        className="resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <CardFooter className="pt-4">
+                <Button type="submit">Update Profile</Button>
+              </CardFooter>
             </form>
           </Form>
         </CardContent>

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
@@ -95,11 +96,22 @@ const FindDoctors = () => {
           session_id: sessionId,
           doctor_id: doctorId,
           patient_id: user.id,
-          symptoms: symptoms || null
+          symptoms: symptoms || null,
+          status: 'scheduled'
         }])
         .select();
       
       if (error) throw error;
+      
+      // Update the patients_booked count and is_available flag
+      await supabase
+        .from('doctor_sessions')
+        .update({ 
+          patients_booked: selectedSession?.patients_booked ? selectedSession.patients_booked + 1 : 1,
+          is_available: selectedSession?.max_patients ? (selectedSession.patients_booked + 1 < selectedSession.max_patients) : false
+        })
+        .eq('id', sessionId);
+      
       return data[0];
     },
     onSuccess: () => {
