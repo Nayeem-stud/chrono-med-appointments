@@ -1,15 +1,14 @@
-import { useState, useEffect } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+
+import { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { 
   Calendar, 
   Clock, 
   Home, 
   LogOut, 
   Menu, 
-  Settings, 
   Stethoscope, 
   User, 
-  Users,
   X
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
@@ -20,51 +19,9 @@ interface DashboardLayoutProps {
 }
 
 const DashboardLayout = ({ children }: DashboardLayoutProps) => {
-  const { user, signOut, isDoctor, isPatient, isLoading } = useAuth();
+  const { user, signOut, isDoctor } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    // Only redirect if we're sure the user isn't logged in (not during loading)
-    if (!isLoading && !user) {
-      // Avoid redirecting from profile pages which might still be loading profile data
-      const isProfilePage = location.pathname.includes('profile');
-      
-      // Only redirect from non-profile pages
-      if (!isProfilePage) {
-        console.log("No user detected, redirecting from:", location.pathname);
-        const redirectUrl = isDoctor ? "/login/doctor" : "/login/customer";
-        navigate(redirectUrl);
-      }
-    }
-  }, [user, isLoading, navigate, isDoctor, location.pathname]);
-
-  // Show a loading state instead of returning null, which might cause flash redirect
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-gray-600">Loading...</p>
-      </div>
-    );
-  }
-
-  // Return layout even if user isn't fully loaded - this prevents
-  // redirects on profile pages where we're still fetching data
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-gray-600">Please log in to access this page</p>
-        <Button 
-          variant="link" 
-          onClick={() => navigate("/login/customer")}
-          className="ml-2"
-        >
-          Go to Login
-        </Button>
-      </div>
-    );
-  }
 
   const doctorNavItems = [
     { name: "Dashboard", path: "/doctor-dashboard", icon: <Home className="h-5 w-5" /> },
@@ -81,6 +38,10 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   ];
 
   const navItems = isDoctor ? doctorNavItems : patientNavItems;
+
+  if (!user) {
+    return null; // This should never happen with protected routes
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">

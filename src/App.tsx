@@ -2,8 +2,8 @@
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/hooks/use-auth";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -23,6 +23,35 @@ import PatientProfile from "./pages/patient/PatientProfile";
 
 const queryClient = new QueryClient();
 
+// Protected route components
+const DoctorRoute = ({ children }: { children: JSX.Element }) => {
+  const { user, isDoctor, isLoading } = useAuth();
+  
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
+  
+  if (!user || !isDoctor) {
+    return <Navigate to="/login/doctor" replace />;
+  }
+  
+  return children;
+};
+
+const PatientRoute = ({ children }: { children: JSX.Element }) => {
+  const { user, isPatient, isLoading } = useAuth();
+  
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
+  
+  if (!user || !isPatient) {
+    return <Navigate to="/login/customer" replace />;
+  }
+  
+  return children;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -34,17 +63,73 @@ const App = () => (
             <Route path="/login/:type" element={<Login />} />
             <Route path="/signup/:type" element={<Signup />} />
             
-            {/* Doctor Routes */}
-            <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
-            <Route path="/doctor-sessions" element={<DoctorSessions />} />
-            <Route path="/doctor-appointments" element={<DoctorAppointments />} />
-            <Route path="/doctor-profile" element={<DoctorProfile />} />
+            {/* Doctor Routes - Protected */}
+            <Route 
+              path="/doctor-dashboard" 
+              element={
+                <DoctorRoute>
+                  <DoctorDashboard />
+                </DoctorRoute>
+              } 
+            />
+            <Route 
+              path="/doctor-sessions" 
+              element={
+                <DoctorRoute>
+                  <DoctorSessions />
+                </DoctorRoute>
+              } 
+            />
+            <Route 
+              path="/doctor-appointments" 
+              element={
+                <DoctorRoute>
+                  <DoctorAppointments />
+                </DoctorRoute>
+              } 
+            />
+            <Route 
+              path="/doctor-profile" 
+              element={
+                <DoctorRoute>
+                  <DoctorProfile />
+                </DoctorRoute>
+              } 
+            />
 
-            {/* Patient Routes */}
-            <Route path="/patient-dashboard" element={<PatientDashboard />} />
-            <Route path="/find-doctors" element={<FindDoctors />} />
-            <Route path="/patient-appointments" element={<PatientAppointments />} />
-            <Route path="/patient-profile" element={<PatientProfile />} />
+            {/* Patient Routes - Protected */}
+            <Route 
+              path="/patient-dashboard" 
+              element={
+                <PatientRoute>
+                  <PatientDashboard />
+                </PatientRoute>
+              } 
+            />
+            <Route 
+              path="/find-doctors" 
+              element={
+                <PatientRoute>
+                  <FindDoctors />
+                </PatientRoute>
+              } 
+            />
+            <Route 
+              path="/patient-appointments" 
+              element={
+                <PatientRoute>
+                  <PatientAppointments />
+                </PatientRoute>
+              } 
+            />
+            <Route 
+              path="/patient-profile" 
+              element={
+                <PatientRoute>
+                  <PatientProfile />
+                </PatientRoute>
+              } 
+            />
             
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
