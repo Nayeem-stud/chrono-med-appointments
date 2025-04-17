@@ -39,7 +39,7 @@ const Hero = () => {
         {isMobile && (
           <div className="mt-8">
             <img
-              src="https://images.unsplash.com/photo-1612349317150-e413f6a5b776?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"
+              src="https://images.stockcake.com/public/1/9/d/19d13828-c999-4e2d-a191-9da4dd8bd824_large/confident-medical-professional-stockcake.jpg"
               alt="Doctor consulting with patient"
               className="rounded-xl shadow-lg w-full object-cover h-64"
             />
