@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -33,7 +34,7 @@ import { toast } from "sonner";
 const profileSchema = z.object({
   fullName: z.string().min(2, { message: "Name must be at least 2 characters" }),
   dateOfBirth: z.string().optional(),
-  gender: z.enum(["male", "female", "other", ""]).optional(),
+  gender: z.enum(["male", "female", "other", ""]),
   contactNumber: z.string().optional(),
   medicalHistory: z.string().optional(),
 });
@@ -44,13 +45,26 @@ const PatientProfile = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(true);
-  const [profileData, setProfileData] = useState<PatientProfileType | null>(null);
+
+  // Form configuration
+  const form = useForm<ProfileFormValues>({
+    defaultValues: {
+      fullName: "",
+      dateOfBirth: "",
+      gender: "",
+      contactNumber: "",
+      medicalHistory: "",
+    },
+    resolver: zodResolver(profileSchema),
+  });
 
   // Fetch patient profile
-  const { data: profile } = useQuery({
+  const { data: profile, isError } = useQuery({
     queryKey: ['patientProfile', user?.id],
     queryFn: async () => {
-      if (!user?.id) return null;
+      if (!user?.id) {
+        throw new Error("User not authenticated");
+      }
       
       console.log('Fetching patient profile for user:', user.id);
       const { data, error } = await supabase
@@ -74,39 +88,21 @@ const PatientProfile = () => {
     enabled: !!user?.id,
   });
 
-  // Update local state when query completes
-  useEffect(() => {
-    if (profile) {
-      setProfileData(profile);
-      setIsLoading(false);
-    } else {
-      setIsLoading(false);
-    }
-  }, [profile]);
-
-  const form = useForm<ProfileFormValues>({
-    defaultValues: {
-      fullName: "",
-      dateOfBirth: "",
-      gender: "",
-      contactNumber: "",
-      medicalHistory: "",
-    },
-    resolver: zodResolver(profileSchema),
-  });
-
   // Update form values when profile data is loaded
   useEffect(() => {
-    if (profileData) {
+    if (profile) {
       form.reset({
-        fullName: profileData.full_name,
-        dateOfBirth: profileData.date_of_birth || "",
-        gender: (profileData.gender as any) || "",
-        contactNumber: profileData.contact_number || "",
-        medicalHistory: profileData.medical_history || "",
+        fullName: profile.full_name || "",
+        dateOfBirth: profile.date_of_birth || "",
+        gender: (profile.gender as any) || "",
+        contactNumber: profile.contact_number || "",
+        medicalHistory: profile.medical_history || "",
       });
+      setIsLoading(false);
+    } else if (!isLoading && !isError) {
+      setIsLoading(false);
     }
-  }, [profileData, form]);
+  }, [profile, form, isError, isLoading]);
 
   // Update profile mutation
   const updateProfile = useMutation({
@@ -128,9 +124,8 @@ const PatientProfile = () => {
       if (error) throw error;
       return data[0];
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['patientProfile'] });
-      setProfileData(data);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['patientProfile', user?.id] });
       toast.success("Profile updated successfully");
     },
     onError: (error) => {
@@ -142,8 +137,8 @@ const PatientProfile = () => {
     updateProfile.mutate(values);
   };
 
-  // Don't redirect, just show a loading state if we're waiting for data
-  if (isLoading && !profileData) {
+  // Show loading state if waiting for data
+  if (isLoading) {
     return (
       <DashboardLayout>
         <div className="flex justify-center items-center h-64">
@@ -204,7 +199,7 @@ const PatientProfile = () => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Gender</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select a gender" />
@@ -253,8 +248,13 @@ const PatientProfile = () => {
                 )}
               />
 
-              <CardFooter className="pt-4">
-                <Button type="submit">Update Profile</Button>
+              <CardFooter className="pt-4 px-0">
+                <Button 
+                  type="submit" 
+                  disabled={updateProfile.isPending}
+                >
+                  {updateProfile.isPending ? "Updating..." : "Update Profile"}
+                </Button>
               </CardFooter>
             </form>
           </Form>

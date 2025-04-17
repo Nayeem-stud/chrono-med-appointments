@@ -1,8 +1,11 @@
+
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Stethoscope, User, Mail, Award, UserRound, CalendarClock } from "lucide-react";
 import { toast } from "sonner";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -15,33 +18,22 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SPECIALIZATIONS } from "@/types";
 
-interface ProfileFormValues {
-  full_name: string;
-  specialization: string;
-  qualification: string;
-  experience: number;
-  about: string;
-}
+// Form schema
+const profileSchema = z.object({
+  full_name: z.string().min(2, { message: "Name must be at least 2 characters" }),
+  specialization: z.string().min(1, { message: "Specialization is required" }),
+  qualification: z.string().min(1, { message: "Qualification is required" }),
+  experience: z.number().min(0, { message: "Experience must be a positive number" }),
+  about: z.string().optional(),
+});
+
+type ProfileFormValues = z.infer<typeof profileSchema>;
 
 const DoctorProfile = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
-
-  // Fetch doctor profile
-  const { data: profile, isLoading } = useQuery({
-    queryKey: ['doctorProfile'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('doctor_profiles')
-        .select('*')
-        .eq('id', user?.id)
-        .single();
-      
-      if (error) throw error;
-      return data;
-    }
-  });
+  const [isLoading, setIsLoading] = useState(true);
 
   // Create form instance
   const form = useForm<ProfileFormValues>({
@@ -51,7 +43,28 @@ const DoctorProfile = () => {
       qualification: '',
       experience: 0,
       about: '',
-    }
+    },
+    resolver: zodResolver(profileSchema)
+  });
+
+  // Fetch doctor profile
+  const { data: profile } = useQuery({
+    queryKey: ['doctorProfile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) {
+        throw new Error("User not authenticated");
+      }
+      
+      const { data, error } = await supabase
+        .from('doctor_profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
   });
 
   // Update form values when profile data is loaded
@@ -64,12 +77,17 @@ const DoctorProfile = () => {
         experience: profile.experience || 0,
         about: profile.about || '',
       });
+      setIsLoading(false);
     }
   }, [profile, form]);
 
   // Update profile mutation
   const updateProfile = useMutation({
     mutationFn: async (values: ProfileFormValues) => {
+      if (!user?.id) {
+        throw new Error("User not authenticated");
+      }
+      
       const { data, error } = await supabase
         .from('doctor_profiles')
         .update({
@@ -79,14 +97,14 @@ const DoctorProfile = () => {
           experience: values.experience,
           about: values.about,
         })
-        .eq('id', user?.id)
+        .eq('id', user.id)
         .select();
       
       if (error) throw error;
       return data[0];
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['doctorProfile'] });
+      queryClient.invalidateQueries({ queryKey: ['doctorProfile', user?.id] });
       toast.success("Profile updated successfully");
       setIsEditing(false);
     },
@@ -220,7 +238,7 @@ const DoctorProfile = () => {
                       <FormLabel>Specialization</FormLabel>
                       <Select 
                         onValueChange={field.onChange} 
-                        defaultValue={field.value}
+                        value={field.value}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -267,6 +285,7 @@ const DoctorProfile = () => {
                           placeholder="Years of experience"
                           {...field}
                           onChange={(e) => field.onChange(parseInt(e.target.value) || 0)} 
+                          value={field.value}
                         />
                       </FormControl>
                       <FormMessage />
