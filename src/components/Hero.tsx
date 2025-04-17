@@ -31,7 +31,7 @@ const Hero = () => {
         </div>
         <div className="hidden md:flex justify-center items-center pl-8">
           <img
-            src="https://images.unsplash.com/photo-1612349317150-e413f6a5b776?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80"
+            src="https://www.google.com/imgres?q=Confident%20Doctor&imgurl=https%3A%2F%2Fstatic.vecteezy.com%2Fsystem%2Fresources%2Fpreviews%2F013%2F565%2F131%2Flarge_2x%2Fconfident-male-doctor-cheerful-african-doctor-pointing-away-and-smiling-while-standing-against-grey-background-free-photo.JPG&imgrefurl=https%3A%2F%2Fwww.vecteezy.com%2Fphoto%2F13565131-confident-male-doctor-cheerful-african-doctor-pointing-away-and-smiling-while-standing-against-grey-background&docid=YDE1JC1M_2iGMM&tbnid=JJ46D1O0_BiwPM&vet=12ahUKEwiH-8ny996MAxWGzzgGHXdZIsMQM3oECGkQAA..i&w=2937&h=1960&hcb=2&ved=2ahUKEwiH-8ny996MAxWGzzgGHXdZIsMQM3oECGkQAA"
             alt="Doctor consulting with patient"
             className="rounded-2xl shadow-xl w-full max-w-[500px] object-cover transform hover:scale-[1.02] transition-transform duration-300"
           />
