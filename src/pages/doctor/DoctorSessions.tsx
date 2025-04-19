@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
@@ -44,7 +43,6 @@ const DoctorSessions = () => {
     location: ""
   });
 
-  // Fetch doctor sessions
   const { data: sessions, isLoading } = useQuery({
     queryKey: ['doctorSessions'],
     queryFn: async () => {
@@ -69,7 +67,6 @@ const DoctorSessions = () => {
     enabled: !!user?.id
   });
 
-  // Create session mutation
   const createSession = useMutation({
     mutationFn: async (newSession: {
       date: string;
@@ -112,7 +109,6 @@ const DoctorSessions = () => {
     }
   });
 
-  // Update session mutation
   const updateSession = useMutation({
     mutationFn: async (updatedSession: Partial<DoctorSession> & { id: string }) => {
       const { id, ...sessionData } = updatedSession;
@@ -135,7 +131,6 @@ const DoctorSessions = () => {
     }
   });
 
-  // Delete session mutation
   const deleteSession = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
@@ -167,7 +162,6 @@ const DoctorSessions = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate form data
     if (!formData.date || !formData.start_time || !formData.end_time) {
       toast.error("Please fill in all required fields");
       return;
@@ -175,7 +169,6 @@ const DoctorSessions = () => {
     
     console.log('Submitting form data:', formData);
     
-    // Format the data
     const sessionData = {
       date: formData.date,
       start_time: formData.start_time,
@@ -246,7 +239,6 @@ const DoctorSessions = () => {
     
     return Object.entries(grouped)
       .sort(([dateA], [dateB]) => {
-        // Sort by date ascending
         return new Date(dateA).getTime() - new Date(dateB).getTime();
       });
   };
@@ -266,7 +258,6 @@ const DoctorSessions = () => {
         </Button>
       </div>
 
-      {/* New Session Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -367,7 +358,6 @@ const DoctorSessions = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Sessions List */}
       {isLoading ? (
         <div className="text-center py-10">Loading sessions...</div>
       ) : groupedSessions.length === 0 ? (

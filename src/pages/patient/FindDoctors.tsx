@@ -209,7 +209,7 @@ const FindDoctors = () => {
               <SelectValue placeholder="Filter by specialization" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Specializations</SelectItem>
+              <SelectItem value="all-specializations">All Specializations</SelectItem>
               {SPECIALIZATIONS.map((spec) => (
                 <SelectItem key={spec} value={spec}>{spec}</SelectItem>
               ))}

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -18,7 +17,6 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SPECIALIZATIONS } from "@/types";
 
-// Form schema
 const profileSchema = z.object({
   full_name: z.string().min(2, { message: "Name must be at least 2 characters" }),
   specialization: z.string().min(1, { message: "Specialization is required" }),
@@ -35,7 +33,6 @@ const DoctorProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Create form instance
   const form = useForm<ProfileFormValues>({
     defaultValues: {
       full_name: '',
@@ -47,7 +44,6 @@ const DoctorProfile = () => {
     resolver: zodResolver(profileSchema)
   });
 
-  // Fetch doctor profile
   const { data: profile } = useQuery({
     queryKey: ['doctorProfile', user?.id],
     queryFn: async () => {
@@ -67,7 +63,6 @@ const DoctorProfile = () => {
     enabled: !!user?.id,
   });
 
-  // Update form values when profile data is loaded
   useEffect(() => {
     if (profile) {
       form.reset({
@@ -81,7 +76,6 @@ const DoctorProfile = () => {
     }
   }, [profile, form]);
 
-  // Update profile mutation
   const updateProfile = useMutation({
     mutationFn: async (values: ProfileFormValues) => {
       if (!user?.id) {
