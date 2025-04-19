@@ -75,14 +75,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             console.log("Initial is_doctor check:", data, error);
             if (!error && data) {
               setUserType('doctor');
-              // Redirect doctor to their dashboard if not already there
-              if (!['/doctor-dashboard', '/doctor-sessions', '/doctor-appointments'].includes(location.pathname)) {
+              // Redirect doctor to their dashboard if they're on auth pages
+              const isAuthPage = ['/login/doctor', '/signup/doctor', '/login/customer', '/signup/customer'].includes(location.pathname);
+              const isDoctorPage = location.pathname.startsWith('/doctor-');
+              
+              if (isAuthPage && !isDoctorPage) {
                 navigate('/doctor-dashboard');
               }
             } else {
               setUserType('customer');
-              // Redirect patient to their dashboard if not already there
-              if (!['/patient-dashboard', '/find-doctors', '/patient-appointments'].includes(location.pathname)) {
+              // Redirect patient to their dashboard if they're on auth pages
+              const isAuthPage = ['/login/doctor', '/signup/doctor', '/login/customer', '/signup/customer'].includes(location.pathname);
+              const isPatientPage = location.pathname.startsWith('/patient-') || location.pathname === '/find-doctors';
+              
+              if (isAuthPage && !isPatientPage) {
                 navigate('/patient-dashboard');
               }
             }
