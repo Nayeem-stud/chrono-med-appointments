@@ -8,7 +8,8 @@ import {
   Stethoscope, 
   ArrowRight,
   Search,
-  History 
+  History,
+  SparkleIcon
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +17,8 @@ import { useAuth } from "@/hooks/use-auth";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { appointmentRecommender } from "@/utils/appointmentRecommendations";
+import { DoctorSession } from "@/types";
 
 const PatientDashboard = () => {
   const { user } = useAuth();
@@ -78,6 +81,48 @@ const PatientDashboard = () => {
     }
   });
 
+  // Fetch available sessions for recommendations
+  const { data: availableSessions = [] } = useQuery({
+    queryKey: ['availableSessions'],
+    queryFn: async () => {
+      // Get tomorrow's date
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().split('T')[0];
+      
+      // Get 14 days from now
+      const twoWeeksLater = new Date();
+      twoWeeksLater.setDate(twoWeeksLater.getDate() + 14);
+      const twoWeeksLaterStr = twoWeeksLater.toISOString().split('T')[0];
+
+      const { data, error } = await supabase
+        .from('doctor_sessions')
+        .select(`
+          *,
+          doctor:doctor_id(*)
+        `)
+        .gte('date', tomorrowStr)
+        .lte('date', twoWeeksLaterStr)
+        .eq('is_available', true)
+        .order('date', { ascending: true })
+        .order('start_time', { ascending: true })
+        .limit(50);
+      
+      if (error) throw error;
+      return data as DoctorSession[];
+    },
+    enabled: !!user // Only run this query when user is available
+  });
+
+  // Use ML to get recommended sessions based on user history
+  const pastSessionsForML = recentAppointments
+    .map((apt: any) => apt.session)
+    .filter(Boolean);
+  
+  const recommendedSessions = availableSessions.length > 0 
+    ? appointmentRecommender.recommendSessions(availableSessions, pastSessionsForML)
+    : [];
+
   return (
     <DashboardLayout>
       <div className="mb-6">
@@ -86,6 +131,53 @@ const PatientDashboard = () => {
           Welcome back, {patientProfile?.full_name || user?.email?.split('@')[0]}
         </p>
       </div>
+
+      {/* ML-powered Recommendations */}
+      {recommendedSessions.length > 0 && (
+        <Card className="mb-8 bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-100">
+          <CardHeader className="pb-2">
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle className="text-lg flex items-center">
+                  <SparkleIcon className="h-5 w-5 text-indigo-500 mr-2" />
+                  Recommended Appointments
+                </CardTitle>
+                <CardDescription>AI-powered suggestions based on your preferences</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {recommendedSessions.map((session: DoctorSession) => (
+                <div key={session.id} className="border rounded-lg p-3 bg-white shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="p-2 bg-indigo-100 rounded-full">
+                      <Stethoscope className="h-4 w-4 text-indigo-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">Dr. {session.doctor?.full_name}</p>
+                      <p className="text-xs text-gray-500">{session.doctor?.specialization}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center text-xs text-gray-700 mb-1">
+                    <Calendar className="h-3 w-3 mr-1" />
+                    {format(parseISO(session.date), 'EEE, MMM d')}
+                  </div>
+                  <div className="flex items-center text-xs text-gray-700 mb-3">
+                    <Clock className="h-3 w-3 mr-1" />
+                    {session.start_time} - {session.end_time}
+                  </div>
+                  <Button asChild variant="outline" size="sm" className="w-full">
+                    <Link to={`/find-doctors?session=${session.id}`}>
+                      Book Now
+                    </Link>
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
